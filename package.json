@@ -1,0 +1,19 @@
+{
+  "name": "ots-deploy-tools",
+  "version": "0.9.0",
+  "description": "Gulp deployment utilities and task templates for OneTwoSee applications",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Frank Weindel <frank@weindel.info> (http://frank.weindel.info)",
+  "license": "ISC",
+  "devDependencies": {
+    "gulp-pkgcloud-upload": "^0.1.1",
+    "gulp-util": "^3.0.5",
+    "inquirer": "^0.8.5",
+    "rsyncwrapper": "^0.4.3",
+    "run-sequence": "^1.1.0",
+    "when": "^3.7.3"
+  }
+}
