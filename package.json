@@ -18,6 +18,8 @@
     "inquirer": "^0.8.5",
     "rsyncwrapper": "^0.4.3",
     "run-sequence": "^1.1.0",
-    "when": "^3.7.3"
+    "underscore": "^1.8.3",
+    "when": "^3.7.3",
+    "yargs": "^3.10.0"
   }
 }

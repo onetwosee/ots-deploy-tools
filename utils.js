@@ -1,27 +1,40 @@
-var exec = require('child_process').exec;
 var gutil = require('gulp-util');
 var when = require('when');
 var inquirer = require('inquirer');
+var _ = require('underscore');
 var runSequence = require('run-sequence');
 var rsync = require('./lib/rsync');
+var remoteExec = require('./lib/remoteExec');
 
-module.exports = {
+var Utils = function(args) {
+  this.args = args;
+}
+
+_.extend(Utils.prototype, {
   /**
    * Ask yes/no question to user.
    *
-   * @param  {string} message Message to display
-   * @param  {boolean} def    Default choice (false if not specified)
-   * @return {Promise}        Resolves if user answers Yes. Rejects if its a No.
+   * Side effects:
+   *  - if 'silent' command line param is enabled, the prompt will be skipped and the promised resolved.
+   *
+   * @param  {string} message       Message to display
+   * @param  {boolean} def          Default choice if user enters nothing (false if not specified)
+   * @param  {boolean} silent       If true, skip user input and just resolve the promise.
+   * @return {Promise}              Resolves if user answers Yes. Rejects if its a No.
    */
-  confirm: function(message, def) {
+  confirm: function(message, def, silent) {
+    var args = this.args;
     return when.promise(function(resolve, reject) {
+      if (silent || args.silent) {
+        gutil.log("Skipping prompt: " + message);
+        resolve();
+      }
       inquirer.prompt([{
         type: 'confirm',
         name: 'answer',
         message: message,
         default: (def === void 0) ? false : def,
       }], function(answers) {
-
         if (answers.answer) {
           resolve();
         }
@@ -39,18 +52,34 @@ module.exports = {
    * @return {Promise}
    */
   restartRemoteUpstart: function(connStr, upstartName) {
-    return when.promise(function(resolve, reject) {
-      gutil.log('Restarting '+upstartName+'...');
-      exec("ssh "+connStr+" 'stop "+upstartName+" && start "+upstartName+"'", function (err, stdout, stderr) {
-        if (err) {
-          gutil.log(gutil.colors.red(err));
-          reject();
-          return;
-        }
+    gutil.log('Restarting '+upstartName+'...');
+    return remoteExec(connStr, "stop "+upstartName+" && start "+upstartName)
+      .then(function() {
         gutil.log('Restarted.');
-        resolve();
       });
-    })
+  },
+  /**
+   * Creates a directory structure on the remote host if it doesn't already exist
+   *
+   * Does a 'mkdir -p'
+   *
+   * @param  {string} connStr     Remote SSH connection string of host/user
+   * @param  {string} directory   Absolute directory
+   * @return {Promise}
+   */
+  ensureRemoteDirectory: function(connStr, directory) {
+    gutil.log('Creating directory (if not already there): ' + directory + '...');
+    return remoteExec(connStr, 'mkdir -p '+directory)
+      .then(function() {
+        gutil.log('Done.');
+      });
+  },
+  remoteSymlink: function(connStr, src, dst) {
+    gutil.log('Symlinking ' + src + ' to ' + dst);
+    return remoteExec(connStr, 'rm -f '+dst+' && ln -sf '+src+' '+dst)
+      .then(function() {
+        gutil.log('Done.');
+      });
   },
   /**
    * Do standard rsync from local srcPath to remote destPath.
@@ -152,4 +181,6 @@ module.exports = {
       runSequence.apply(global, args);
     });
   }
-}
+});
+
+module.exports = Utils;
