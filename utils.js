@@ -54,7 +54,7 @@ _.extend(Utils.prototype, {
    */
   restartRemoteUpstart: function(connStr, upstartName) {
     gutil.log('Restarting '+upstartName+'...');
-    return remoteExec(connStr, "stop "+upstartName+" && start "+upstartName)
+    return remoteExec(connStr, "stop "+upstartName+"; start "+upstartName)
       .then(function() {
         gutil.log('Restarted.');
       });
