@@ -82,6 +82,13 @@ _.extend(Utils.prototype, {
         gutil.log('Done.');
       });
   },
+  remoteNpmInstall: function(connStr, directory) {
+    gutil.log('NPM Installing at ' + directory);
+    return remoteExec(connStr, 'cd ' + directory + ' && npm install')
+      .then(function() {
+        gutil.log('Done.');
+      });
+  },
   /**
    * Do standard rsync from local srcPath to remote destPath.
    *

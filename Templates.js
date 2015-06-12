@@ -33,10 +33,13 @@ _.extend(Templates.prototype, {
         return utils.remoteSymlink(args.hostConnStr, '../config.js', configFileSymlink);
       })
       .then(function() {
-        return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
+        return utils.remoteNpmInstall(args.hostConnStr, uploadLocation);
       })
       .then(function() {
         return utils.remoteSymlink(args.hostConnStr, uploadLocation, symlinkLocation);
+      })
+      .then(function() {
+        return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
       })
       .then(function() {
         gutil.log('Deployment complete');
