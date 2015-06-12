@@ -28,6 +28,7 @@ _.extend(Utils.prototype, {
       if (silent || args.silent) {
         gutil.log("Skipping prompt: " + message);
         resolve();
+        return;
       }
       inquirer.prompt([{
         type: 'confirm',
