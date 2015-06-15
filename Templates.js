@@ -9,9 +9,44 @@ var Templates = function(args, utils) {
 };
 
 _.extend(Templates.prototype, {
-  deployApp: function() {
+  /**
+   * Standard versioned deploy task
+   *
+   * If all options are true:
+   *  1. Confirms if user wants to deploy (skipped by the --silent command arg)
+   *  2. Creates remote deploy directory if it doesn't exist
+   *  3. Rsync options.src to configured '<appLocation>/<version>' directory
+   *  4. Remotely symlinks '<appLocation>/config.js' to '../config.js'
+   *  5. Remote NPM install on the configured appLocation directory
+   *  6. Remotely symlinks '<symlinkLocation>' to '<appLocation>/<version>'
+   *  7. Remotely restarts upstart. Configued by upstartName.
+   *
+   * options:
+   * {
+   *   src: (string) Source directory relative to gulpfile to deploy. (Default: './')
+   *                 ** Make sure this string ends with a TRAILING SLASH if you
+   *                    just want to copy the contents of the directory! **
+   *   npmInstall: (boolean) Do a remote NPM install after rsyncing (Default: true)
+   *   restartUpstart: (boolean) Remotely restart the configed upstart to cap
+   *                             off the deployment (Default: true)
+   *   symlinkConfigFile: (boolean) Remotely symlink 'config.js' to '../config.js'
+   *                                (default true)
+   * }
+   *
+   * @param  {object} options See above.
+   * @return {Promise}
+   */
+  deployApp: function(options) {
     var args = this.args;
     var utils = this.utils;
+
+    options = options || {};
+    _.defaults(options, {
+      src: './',
+      npmInstall: true,
+      restartUpstart: true,
+      symlinkConfigFile: true
+    });
 
     var uploadLocation = path.join(args.appLocation, args.version);
     var symlinkLocation = args.symlinkLocation;
@@ -26,20 +61,29 @@ _.extend(Templates.prototype, {
         return utils.ensureRemoteDirectory(args.hostConnStr, uploadLocation);
       })
       .then(function() {
-        return utils.rsyncApp('./', args.hostConnStr, uploadLocation)
+        return utils.rsyncApp(options.src, args.hostConnStr, uploadLocation);
       })
       .then(function() {
-        var configFileSymlink = path.join(uploadLocation, 'config.js');
-        return utils.remoteSymlink(args.hostConnStr, '../config.js', configFileSymlink);
+        if (options.symlinkConfigFile) {
+          var configFileSymlink = path.join(uploadLocation, 'config.js');
+          return utils.remoteSymlink(args.hostConnStr, '../config.js', configFileSymlink);
+        }
+        return true;
       })
       .then(function() {
-        return utils.remoteNpmInstall(args.hostConnStr, uploadLocation);
+        if (options.npmInstall) {
+          return utils.remoteNpmInstall(args.hostConnStr, uploadLocation);
+        }
+        return true;
       })
       .then(function() {
         return utils.remoteSymlink(args.hostConnStr, uploadLocation, symlinkLocation);
       })
       .then(function() {
-        return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
+        if (options.restartUpstart) {
+          return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
+        }
+        return true;
       })
       .then(function() {
         gutil.log('Deployment complete');
