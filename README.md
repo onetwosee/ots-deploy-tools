@@ -18,9 +18,6 @@ module.exports = {
 ### gulpfile.js
 ```javascript
 var gulp = require('gulp');
-var gutil = require('gulp-util');
-var when = require('when');
-var path = require('path');
 
 var stagingDeployTools = require('ots-deploy-tools')(
   require('./deploy-config.js'),
