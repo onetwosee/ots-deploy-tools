@@ -88,7 +88,9 @@ _.extend(Templates.prototype, {
       .then(function() {
         gutil.log('Deployment complete');
       }).catch(function(err) {
-        gutil.log('Deployment failed', err, err.stack);
+        err = err || "";
+        var stack = err && err.stack || "";
+        gutil.log('Deployment failed', err, stack);
       });
   },
   pullConfig: function() {
