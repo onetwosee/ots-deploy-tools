@@ -84,7 +84,7 @@ _.extend(Utils.prototype, {
   },
   remoteNpmInstall: function(connStr, directory) {
     gutil.log('NPM Installing at ' + directory);
-    return remoteExec(connStr, 'cd ' + directory + ' && npm install')
+    return remoteExec(connStr, 'cd ' + directory + ' && npm install --production')
       .then(function() {
         gutil.log('Done.');
       });
