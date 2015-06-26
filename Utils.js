@@ -113,7 +113,7 @@ _.extend(Utils.prototype, {
         "README.md",
         "environment.json",
         "environment.*.json",
-        "config.js",
+        "/config.js",
         "config.*.js",
         "deploy-config.js"
       ]
