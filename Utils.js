@@ -46,6 +46,34 @@ _.extend(Utils.prototype, {
     });
   },
   /**
+   * Stops a remote upstart
+   *
+   * @param  {string} connStr     Remote SH connection string of host/user
+   * @param  {string} upstartName Name of upstart to restart on remote host
+   * @return {Promise}
+   */
+  stopRemoteUpstart: function(connStr, upstartName) {
+    gutil.log('Stopping '+upstartName+'...');
+    return remoteExec(connStr, "stop "+upstartName)
+      .then(function() {
+        gutil.log('Stopped.');
+      });
+  },
+  /**
+   * Start a remote upstart
+   *
+   * @param  {string} connStr     Remote SH connection string of host/user
+   * @param  {string} upstartName Name of upstart to restart on remote host
+   * @return {Promise}
+   */
+  startRemoteUpstart: function(connStr, upstartName) {
+    gutil.log('Starting '+upstartName+'...');
+    return remoteExec(connStr, "start "+upstartName)
+      .then(function() {
+        gutil.log('Started.');
+      });
+  },
+  /**
    * Restarts a remote upstart
    *
    * @param  {string} connStr     Remote SH connection string of host/user
@@ -57,6 +85,38 @@ _.extend(Utils.prototype, {
     return remoteExec(connStr, "stop "+upstartName+"; start "+upstartName)
       .then(function() {
         gutil.log('Restarted.');
+      });
+  },
+  /**
+   * Creates a directory structure on the remote host if it doesn't already exist
+   *
+   * Does a 'mkdir -p'
+   *
+   * @param  {string} connStr     Remote SSH connection string of host/user
+   * @param  {string} directory   Absolute directory
+   * @return {Promise}
+   */
+  removeRemoteDirectory: function(connStr, directory) {
+    gutil.log('Removing directory (if not already there): ' + directory + '...');
+    return remoteExec(connStr, 'rm -fr '+directory)
+      .then(function() {
+        gutil.log('Done.');
+      });
+  },
+  /**
+   * Creates a directory structure on the remote host if it doesn't already exist
+   *
+   * Does a 'mkdir -p'
+   *
+   * @param  {string} connStr     Remote SSH connection string of host/user
+   * @param  {string} directory   Absolute directory
+   * @return {Promise}
+   */
+  moveRemote: function(connStr, src, dst) {
+    gutil.log('Moving ' + src + ' to ' + dst);
+    return remoteExec(connStr, 'mv ' +src + ' ' + dst)
+      .then(function() {
+        gutil.log('Done.');
       });
   },
   /**

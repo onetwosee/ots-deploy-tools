@@ -48,7 +48,8 @@ _.extend(Templates.prototype, {
       symlinkConfigFile: true
     });
 
-    var uploadLocation = path.join(args.appLocation, args.version);
+    var prevLocation = path.join(args.appLocation, 'prev');
+    var uploadLocation = path.join(args.appLocation, 'cur');
     var symlinkLocation = args.symlinkLocation;
 
     gutil.log(args.target+' deploy config: \n', args, uploadLocation);
@@ -57,6 +58,27 @@ _.extend(Templates.prototype, {
         return utils.confirm('Are you sure you want to deploy the application to '+args.target+'?', false, args.silent);
       })
       .then(function() {
+        if (options.restartUpstart) {
+          return utils.stopRemoteUpstart(args.hostConnStr, args.upstartName);
+        }
+        return true;
+      })
+      .then(function() {
+        /*
+          Remove old previous folder
+         */
+        return utils.removeRemoteDirectory(args.hostConnStr, prevLocation);
+      })
+      .then(function() {
+        /*
+          Move current to prev
+         */
+        return utils.moveRemote(args.hostConnStr, uploadLocation, prevLocation).else(null);
+      })
+      .then(function() {
+        /*
+          Ensure upload (current) location exists
+         */
         args.silent = true;
         return utils.ensureRemoteDirectory(args.hostConnStr, uploadLocation);
       })
@@ -81,7 +103,7 @@ _.extend(Templates.prototype, {
       })
       .then(function() {
         if (options.restartUpstart) {
-          return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
+          return utils.startRemoteUpstart(args.hostConnStr, args.upstartName);
         }
         return true;
       })
