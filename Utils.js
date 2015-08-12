@@ -54,7 +54,17 @@ _.extend(Utils.prototype, {
    */
   stopRemoteUpstart: function(connStr, upstartName) {
     gutil.log('Stopping '+upstartName+'...');
-    return remoteExec(connStr, "stop "+upstartName)
+    return remoteExec(connStr, "stop "+upstartName, true)
+      .catch(function(err) {
+        // Ignore Unknown instance error
+        if (/Unknown Instance/i.test(err)) {
+          return when.resolve();
+        }
+        else {
+          gutil.log(gutil.colors.red(err));
+          return when.reject(err);
+        }
+      })
       .then(function() {
         gutil.log('Stopped.');
       });
