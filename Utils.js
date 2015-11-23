@@ -53,11 +53,17 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   stopRemoteUpstart: function(connStr, upstartName) {
-    gutil.log('Stopping '+upstartName+'...');
+    gutil.log('Stopping ' + upstartName + '...');
+    var unknownJob = false;
     return remoteExec(connStr, "stop "+upstartName, true)
       .catch(function(err) {
-        // Ignore Unknown instance error
         if (/Unknown Instance/i.test(err)) {
+          // Ignore Unknown instance error
+          return when.resolve();
+        }
+        else if (/Unknown job/i.test(err)) {
+          // Ignore unknown job error but give the user a warning
+          unknownJob = true;
           return when.resolve();
         }
         else {
@@ -66,7 +72,12 @@ _.extend(Utils.prototype, {
         }
       })
       .then(function() {
-        gutil.log('Stopped.');
+        if (unknownJob) {
+          gutil.log(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not stop. Moving on anyway...'));
+        }
+        else {
+          gutil.log('Stopped.');
+        }
       });
   },
   /**
@@ -78,9 +89,26 @@ _.extend(Utils.prototype, {
    */
   startRemoteUpstart: function(connStr, upstartName) {
     gutil.log('Starting '+upstartName+'...');
-    return remoteExec(connStr, "start "+upstartName)
+    var unknownJob = false;
+    return remoteExec(connStr, "start "+upstartName, true)
+      .catch(function(err) {
+        if (/Unknown job/i.test(err)) {
+          // Ignore unknown job error but give the user a warning
+          unknownJob = true;
+          return when.resolve();
+        }
+        else {
+          gutil.log(gutil.colors.red(err));
+          return when.reject(err);
+        }
+      })
       .then(function() {
-        gutil.log('Started.');
+        if (unknownJob) {
+          gutil.log(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not start. Moving on anyway...'));
+        }
+        else {
+          gutil.log('Started.');
+        }
       });
   },
   /**
