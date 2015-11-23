@@ -152,7 +152,7 @@ _.extend(Utils.prototype, {
    */
   moveRemote: function(connStr, src, dst) {
     gutil.log('Moving ' + src + ' to ' + dst);
-    return remoteExec(connStr, 'mv ' +src + ' ' + dst)
+    return remoteExec(connStr, 'mv ' +src + ' ' + dst, true)
       .then(function() {
         gutil.log('Done.');
       });
