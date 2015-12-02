@@ -113,6 +113,7 @@ _.extend(Templates.prototype, {
         err = err || "";
         var stack = err && err.stack || "";
         gutil.log('Deployment failed', err, stack);
+        return when.reject(err);
       });
   },
   pullConfig: function() {
@@ -130,8 +131,9 @@ _.extend(Templates.prototype, {
       })
       .then(function() {
         gutil.log('Config pull complete');
-      }).catch(function() {
+      }).catch(function(err) {
         gutil.log('Config pull failed.');
+        return when.reject(err);
       });
   },
   pushConfig: function() {
@@ -157,8 +159,9 @@ _.extend(Templates.prototype, {
       .then(function() {
         gutil.log('Config push complete');
       })
-      .catch(function() {
+      .catch(function(err) {
         gutil.log('Config push failed. Make sure '+localConfig+' exists');
+        return when.reject(err);
       });
   }
 });
