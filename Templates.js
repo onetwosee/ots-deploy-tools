@@ -52,7 +52,7 @@ _.extend(Templates.prototype, {
     var uploadLocation = path.join(args.appLocation, 'cur');
     var symlinkLocation = args.symlinkLocation;
 
-    gutil.log(args.target+' deploy config: \n', args, uploadLocation);
+    gutil.log(gutil.colors.cyan.bold(args.target)+' deploy config: \n', args, uploadLocation);
     return when()
       .then(function() {
         return utils.confirm('Are you sure you want to deploy the application to '+args.target+'?', false, args.silent);
@@ -108,11 +108,11 @@ _.extend(Templates.prototype, {
         return true;
       })
       .then(function() {
-        gutil.log('Deployment complete');
+        gutil.log(gutil.colors.green('Deployment complete!'));
       }).catch(function(err) {
         err = err || "";
         var stack = err && err.stack || "";
-        gutil.log('Deployment failed', err, stack);
+        gutil.log(gutil.colors.red('Deployment failed'), err, stack);
         return when.reject(err);
       });
   },
@@ -130,9 +130,9 @@ _.extend(Templates.prototype, {
         )
       })
       .then(function() {
-        gutil.log('Config pull complete');
+        gutil.log(gutil.colors.green('Config pull complete'));
       }).catch(function(err) {
-        gutil.log('Config pull failed.');
+        gutil.log(gutil.colors.red('Config pull failed.'));
         return when.reject(err);
       });
   },
@@ -141,7 +141,7 @@ _.extend(Templates.prototype, {
     var utils = this.utils;
     var localConfig = './config.'+args.target+'.js';
 
-    gutil.log(args.target+' deploy config: \n', args);
+    gutil.log(gutil.colors.cyan.bold(args.target)+' deploy config: \n', args);
     return when()
       .then(function() {
         return utils.confirm('Are you sure you want to push and overwrite the '+args.target+' config file?');
@@ -157,10 +157,10 @@ _.extend(Templates.prototype, {
         return utils.restartRemoteUpstart(args.hostConnStr, args.upstartName);
       })
       .then(function() {
-        gutil.log('Config push complete');
+        gutil.log(gutil.colors.green('Config push complete'));
       })
       .catch(function(err) {
-        gutil.log('Config push failed. Make sure '+localConfig+' exists');
+        gutil.log(gutil.colors.red('Config push failed. Make sure '+localConfig+' exists'));
         return when.reject(err);
       });
   }

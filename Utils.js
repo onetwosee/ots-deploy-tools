@@ -5,6 +5,15 @@ var _ = require('underscore');
 var runSequence = require('run-sequence');
 var rsync = require('./lib/rsync');
 var remoteExec = require('./lib/remoteExec');
+var escapeShell = require('./lib/escapeShell');
+
+function subLog(message) {
+  gutil.log('... '+message);
+}
+
+function logDone() {
+  subLog(gutil.colors.green('Done'));
+}
 
 var Utils = function(args) {
   this.args = args;
@@ -53,9 +62,9 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   stopRemoteUpstart: function(connStr, upstartName) {
-    gutil.log('Stopping ' + upstartName + '...');
+    gutil.log('Stopping ' + gutil.colors.cyan(upstartName) + '...');
     var unknownJob = false;
-    return remoteExec(connStr, "stop "+upstartName, true)
+    return remoteExec(connStr, "stop "+escapeShell(upstartName), { noLog: true })
       .catch(function(err) {
         if (/Unknown Instance/i.test(err)) {
           // Ignore Unknown instance error
@@ -67,16 +76,16 @@ _.extend(Utils.prototype, {
           return when.resolve();
         }
         else {
-          gutil.log(gutil.colors.red(err));
+          subLog(gutil.colors.red(err));
           return when.reject(err);
         }
       })
       .then(function() {
         if (unknownJob) {
-          gutil.log(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not stop. Moving on anyway...'));
+          subLog(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not stop. Moving on anyway...'));
         }
         else {
-          gutil.log('Stopped.');
+          logDone();
         }
       });
   },
@@ -88,9 +97,9 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   startRemoteUpstart: function(connStr, upstartName) {
-    gutil.log('Starting '+upstartName+'...');
+    gutil.log('Starting '+gutil.colors.cyan(upstartName)+'...');
     var unknownJob = false;
-    return remoteExec(connStr, "start "+upstartName, true)
+    return remoteExec(connStr, "start "+escapeShell(upstartName), { noLog: true })
       .catch(function(err) {
         if (/Unknown job/i.test(err)) {
           // Ignore unknown job error but give the user a warning
@@ -98,16 +107,16 @@ _.extend(Utils.prototype, {
           return when.resolve();
         }
         else {
-          gutil.log(gutil.colors.red(err));
+          subLog(gutil.colors.red(err));
           return when.reject(err);
         }
       })
       .then(function() {
         if (unknownJob) {
-          gutil.log(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not start. Moving on anyway...'));
+          subLog(gutil.colors.yellow('Warning: Upstart script "' + upstartName + '" does not exist. Could not start. Moving on anyway...'));
         }
         else {
-          gutil.log('Started.');
+          logDone();
         }
       });
   },
@@ -119,10 +128,13 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   restartRemoteUpstart: function(connStr, upstartName) {
-    gutil.log('Restarting '+upstartName+'...');
-    return remoteExec(connStr, "stop "+upstartName+"; start "+upstartName)
+    gutil.log('Restarting '+gutil.colors.cyan(upstartName)+'...');
+    return remoteExec(connStr, [
+      "stop "+escapeShell(upstartName),
+      "start "+escapeShell(upstartName)
+    ], { noBail: true })
       .then(function() {
-        gutil.log('Restarted.');
+        logDone();
       });
   },
   /**
@@ -135,10 +147,10 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   removeRemoteDirectory: function(connStr, directory) {
-    gutil.log('Removing directory (if not already there): ' + directory + '...');
-    return remoteExec(connStr, 'rm -fr '+directory)
+    gutil.log('Removing directory (if not already there): ' + gutil.colors.magenta(directory) + '...');
+    return remoteExec(connStr, 'rm -fr '+escapeShell(directory))
       .then(function() {
-        gutil.log('Done.');
+        logDone();
       });
   },
   /**
@@ -151,10 +163,10 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   moveRemote: function(connStr, src, dst) {
-    gutil.log('Moving ' + src + ' to ' + dst);
-    return remoteExec(connStr, 'mv ' +src + ' ' + dst, true)
+    gutil.log('Moving ' + gutil.colors.magenta(src) + ' to ' + gutil.colors.magenta(dst) + '...');
+    return remoteExec(connStr, 'mv ' +escapeShell(src) + ' ' + escapeShell(dst), { noLog: true })
       .then(function() {
-        gutil.log('Done.');
+        logDone();
       });
   },
   /**
@@ -167,24 +179,50 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   ensureRemoteDirectory: function(connStr, directory) {
-    gutil.log('Creating directory (if not already there): ' + directory + '...');
-    return remoteExec(connStr, 'mkdir -p '+directory)
+    gutil.log('Creating directory (if not already there): ' + gutil.colors.magenta(directory) + '...');
+    return remoteExec(connStr, 'mkdir -p '+escapeShell(directory))
       .then(function() {
-        gutil.log('Done.');
+        logDone();
       });
   },
   remoteSymlink: function(connStr, src, dst) {
-    gutil.log('Symlinking ' + src + ' to ' + dst);
-    return remoteExec(connStr, 'rm -f '+dst+' && ln -sf '+src+' '+dst)
+    gutil.log('Symlinking ' + gutil.colors.magenta(src) + ' to ' + gutil.colors.magenta(dst) + ' ...');
+    return remoteExec(connStr, [
+      'rm -f '+escapeShell(dst),
+      'ln -sf '+escapeShell(src)+' '+escapeShell(dst)
+    ])
       .then(function() {
-        gutil.log('Done.');
+        logDone();
       });
   },
   remoteNpmInstall: function(connStr, directory) {
-    gutil.log('NPM Installing at ' + directory);
-    return remoteExec(connStr, 'cd ' + directory + ' && npm install --production')
-      .then(function() {
-        gutil.log('Done.');
+    gutil.log('NPM Installing at ' + gutil.colors.magenta(directory) + '...');
+    return remoteExec(connStr, [
+      'cd ' + escapeShell(directory),
+      'if [ -f .nvmrc ] && ( hash nvm 2>/dev/null ); then',
+      '  nvm install',
+      //'  echo "### NVM INSTALL INVOKED ###"',
+      'fi',
+      'echo "### NODE VERSION: $(node --version) ###"',
+      'echo "### NPM VERSION: $(npm --version) ###"',
+      'npm install --production'
+    ])
+      .then(function(result) {
+        var nodeMatches = result.stdout.match(/### NODE VERSION: (.*) ###/);
+        var npmMatches = result.stdout.match(/### NPM VERSION: (.*) ###/);
+        var nvmMatches = result.stdout.match(/### NVM INSTALL INVOKED ###/);
+
+        if (nvmMatches) {
+          subLog('NVM Install Invoked');
+        }
+        if (nodeMatches) {
+          subLog('Node Version: '+nodeMatches[1]);
+        }
+        if (npmMatches) {
+          subLog('NPM Version: '+npmMatches[1]);
+        }
+
+        logDone();
       });
   },
   /**
@@ -216,7 +254,7 @@ _.extend(Utils.prototype, {
         "deploy-config.js"
       ]
     }).then(function() {
-      gutil.log('Rsync complete.');
+      logDone();
     });
   },
   /**
@@ -228,14 +266,14 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   pushFile: function(srcPath, destConnStr, destPath) {
-    gutil.log('Pushing staging config...');
+    gutil.log('Pushing config...');
     return rsync({
       ssh: true,
       src: srcPath,
       dest: destConnStr+':'+destPath,
       args: ['--verbose']
     }).then(function() {
-      gutil.log('Push complete.');
+      logDone();
     });
   },
   /**
@@ -247,14 +285,14 @@ _.extend(Utils.prototype, {
    * @return {Promise}
    */
   pullFile: function(srcConnStr, srcPath, destPath) {
-    gutil.log('Pulling staging config...');
+    gutil.log('Pulling config to ' + gutil.colors.magenta(destPath) + '...');
     return rsync({
       ssh: true,
       src: srcConnStr+':'+srcPath,
       dest: destPath,
       args: ['--verbose']
     }).then(function() {
-      gutil.log('Pull complete to ' + destPath);
+      logDone();
     });
   },
   streamToPromise: function(stream) {
