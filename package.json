@@ -1,6 +1,6 @@
 {
   "name": "ots-deploy-tools",
-  "version": "0.12.3",
+  "version": "0.13.0",
   "description": "Gulp deployment utilities and task templates for OneTwoSee applications",
   "main": "index.js",
   "scripts": {
