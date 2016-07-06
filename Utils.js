@@ -201,7 +201,7 @@ _.extend(Utils.prototype, {
       'cd ' + escapeShell(directory),
       'if [ -f .nvmrc ] && ( hash nvm 2>/dev/null ); then',
       '  nvm install',
-      //'  echo "### NVM INSTALL INVOKED ###"',
+      '  echo "### NVM INSTALL INVOKED ###"',
       'fi',
       'echo "### NODE VERSION: $(node --version) ###"',
       'echo "### NPM VERSION: $(npm --version) ###"',
