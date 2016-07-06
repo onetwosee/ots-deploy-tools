@@ -2,6 +2,7 @@ var path = require('path');
 var when = require('when');
 var _ = require('underscore');
 var gutil = require('gulp-util');
+var yaml = require('js-yaml');
 
 var Templates = function(args, utils) {
   this.args = args;
@@ -52,7 +53,7 @@ _.extend(Templates.prototype, {
     var uploadLocation = path.join(args.appLocation, 'cur');
     var symlinkLocation = args.symlinkLocation;
 
-    gutil.log(gutil.colors.cyan.bold(args.target)+' deploy config: \n', args, uploadLocation);
+    this._logDeployInfo(args, options);
     return when()
       .then(function() {
         return utils.confirm('Are you sure you want to deploy the application to '+args.target+'?', false, args.silent);
@@ -121,6 +122,7 @@ _.extend(Templates.prototype, {
     var utils = this.utils;
 
     var localConfig = './config.'+args.target+'.js';
+    this._logDeployInfo(args);
     return when()
       .then(function() {
         return utils.pullFile(
@@ -141,7 +143,7 @@ _.extend(Templates.prototype, {
     var utils = this.utils;
     var localConfig = './config.'+args.target+'.js';
 
-    gutil.log(gutil.colors.cyan.bold(args.target)+' deploy config: \n', args);
+    this._logDeployInfo(args);
     return when()
       .then(function() {
         return utils.confirm('Are you sure you want to push and overwrite the '+args.target+' config file?');
@@ -163,6 +165,13 @@ _.extend(Templates.prototype, {
         gutil.log(gutil.colors.red('Config push failed. Make sure '+localConfig+' exists'));
         return when.reject(err);
       });
+  },
+  _logDeployInfo: function(args, templateConfig) {
+    gutil.log(gutil.colors.underline('Target') + ': ' + gutil.colors.cyan.bold(args.target));
+    gutil.log(gutil.colors.underline('Arguments') + '\n' + yaml.safeDump(args, { skipInvalid: true, flowLevel: 2 }));
+    if (templateConfig) {
+      gutil.log(gutil.colors.underline('Template Config') + '\n' + yaml.safeDump(templateConfig, { skipInvalid: true, flowLevel: 2 }));
+    }
   }
 });
 

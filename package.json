@@ -16,6 +16,8 @@
     "gulp-pkgcloud-upload": "^0.1.1",
     "gulp-util": "^3.0.5",
     "inquirer": "^0.8.5",
+    "js-yaml": "^3.6.1",
+    "pathval": "^0.1.1",
     "rsyncwrapper": "^0.4.3",
     "run-sequence": "^1.1.0",
     "underscore": "^1.8.3",
