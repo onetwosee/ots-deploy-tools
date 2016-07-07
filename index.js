@@ -112,12 +112,10 @@ OTSDeployTools.yaml = function(gulp) {
     });
 
     gulp.task('push-config', function() {
-      var deployTools = new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
       return getDeployTools().templates.pushConfig();
     });
 
     gulp.task('pull-config', function() {
-      var deployTools = new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
       return getDeployTools().templates.pullConfig();
     });
   }
