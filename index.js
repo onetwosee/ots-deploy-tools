@@ -49,44 +49,32 @@ var OTSDeployTools = function(deployConfig, target, packageJson, argv) {
   this.templates = new Templates(args, this.utils);
 };
 
+var variableRegex = /\${([0-9A-Z_.-]+)}/ig;
+function resolveVariables(string, target) {
+  return string
+    .replace(variableRegex, function(match, varName) {
+      varName = varName.toUpperCase();
+      var splitVar = varName.split('.');
+      if (splitVar[0] === 'ENV' && process.env[splitVar[1]]) {
+        return process.env[splitVar[1]];
+      }
+      else if (target && varName === 'TARGET') {
+        return target;
+      }
+      throw new Error('Unknown variable "' + varName + '"');
+    });
+}
+
 OTSDeployTools.yaml = function(gulp) {
-  var variableRegex = /\${([0-9A-Z_.-]+)}/ig;
   try {
     // Parse the project's package.json because we might use it
     var packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
 
-    // Get YAML content and inject environment variables
-
-    var yamlContent = readYamlSync()
-      .replace(variableRegex, function(match, varName) {
-        varName = varName.toUpperCase();
-        var splitVar = varName.split('.');
-        if (splitVar[0] === 'ENV' && process.env[splitVar[1]]) {
-          return process.env[splitVar[1]];
-        }
-        else if (varName === 'TARGET') {
-          // We'll handle TARGET later, because we don't know the target yet
-          return match;
-        }
-        throw new Error('Unknown variable "' + varName + '"');
-      });
-
-    // We'll peek at the yaml file first to get defaultTarget info
-    var defaultTarget = pathval.get(yaml.safeLoad(yamlContent), 'deploy.defaultTarget') || 'default';
+    // Get YAML content and parse it
+    var deployYaml = yaml.safeLoad(readYamlSync());
+    var defaultTarget = resolveVariables(pathval.get(deployYaml, 'deploy.defaultTarget') || 'default');
     var target = argv.deployTarget || argv.target || defaultTarget;
 
-    // Lets replace any remaining TARGET variables now that we know the real target
-    yamlContent = yamlContent
-      .replace(variableRegex, function(match, varName) {
-        varName = varName.toUpperCase();
-        if (varName === 'TARGET') {
-          return target;
-        }
-        throw new Error('Unknown variable "' + varName + '"');
-      });
-
-    // Now for the real YAML parse
-    var deployYaml = yaml.safeLoad(yamlContent);
     var targetConfig = pathval.get(deployYaml, 'deploy.' + target);
 
     if (!targetConfig) {
@@ -96,24 +84,41 @@ OTSDeployTools.yaml = function(gulp) {
     // Get the template config. Allow target configs to extend the global template config.
     var templateConfig = _.extend({}, pathval.get(deployYaml, 'deploy.config'), targetConfig.config);
 
-    // Create a special 'multi-target' object that only holds the selected target
-    var targetConfigForOTSDT = {};
-    targetConfigForOTSDT[target] = targetConfig;
+    function getDeployTools() {
+      function variableMapper(value) {
+        if (typeof value === 'string') {
+          return resolveVariables(value, target);
+        }
+        else if (typeof value === 'object') {
+          return _.mapObject(value, variableMapper);
+        }
+        return value;
+      }
+      // Resolve variables
+      targetConfig = _.mapObject(targetConfig, variableMapper);
+      templateConfig = _.mapObject(templateConfig, variableMapper);
 
-    // Create deploy tools instance
-    var deployTools = new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
+      // Create a special 'multi-target' object that only holds the selected target
+      var targetConfigForOTSDT = {};
+      targetConfigForOTSDT[target] = targetConfig;
+
+      // Create deploy tools instance
+      return new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
+    }
 
     // Define the gulp tasks
     gulp.task('deploy', function() {
-      return deployTools.templates.deployApp(templateConfig);
+      return getDeployTools().templates.deployApp(templateConfig);
     });
 
     gulp.task('push-config', function() {
-      return deployTools.templates.pushConfig();
+      var deployTools = new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
+      return getDeployTools().templates.pushConfig();
     });
 
     gulp.task('pull-config', function() {
-      return deployTools.templates.pullConfig();
+      var deployTools = new OTSDeployTools(targetConfigForOTSDT, target, packageJson, argv)
+      return getDeployTools().templates.pullConfig();
     });
   }
   catch (e) {
